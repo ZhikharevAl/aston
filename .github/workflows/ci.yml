@@ -31,6 +31,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     needs: code-quality
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
@@ -92,5 +94,5 @@ jobs:
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          destination_dir: allure-report
-          allow_empty_commit: true
+          publish_dir: target/allure-report
+          keep_files: true
