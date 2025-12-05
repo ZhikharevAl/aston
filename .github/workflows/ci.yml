@@ -70,7 +70,7 @@ jobs:
         uses: actions/upload-artifact@v5.0.0
         with:
           name: build-artifacts-java${{ matrix.java-version }}
-          path: target/*.jar
+          path: target/
           retention-days: 30
 
   allure-report:
@@ -80,11 +80,27 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Download Allure Results
         uses: actions/download-artifact@v4
         with:
           name: allure-results
           path: allure-results
+        continue-on-error: true
+
+      - name: Check if allure-results exist
+        id: check_results
+        run: |
+          if [ -d "allure-results" ] && [ "$(ls -A allure-results)" ]; then
+            echo "results_exist=true" >> $GITHUB_OUTPUT
+            ls -la allure-results/
+          else
+            echo "results_exist=false" >> $GITHUB_OUTPUT
+            echo "No allure-results found, creating empty directory"
+            mkdir -p allure-results
+          fi
 
       - name: Get Allure history
         uses: actions/checkout@v4
@@ -94,6 +110,7 @@ jobs:
           path: gh-pages
 
       - name: Allure Report action
+        if: steps.check_results.outputs.results_exist == 'true'
         uses: simple-elf/allure-report-action@v1.12
         with:
           allure_results: allure-results
@@ -101,8 +118,10 @@ jobs:
           keep_reports: 20
 
       - name: Deploy report to Github Pages
+        if: always()
         uses: peaceiris/actions-gh-pages@v4
         with:
-          github_token: ${{ secrets.ALLURE_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
           publish_dir: allure-report
+        continue-on-error: true
